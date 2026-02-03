@@ -1,0 +1,85 @@
+services:
+  voicemode-revai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voicemode-revai
+    ports:
+      - "8080:8080"  # Voice mode
+      - "8081:8081"  # Rev.ai STT adapter
+    devices:
+      - /dev/snd:/dev/snd  # Audio device access
+    group_add:
+      - audio  # Ensure access to audio devices
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw  # X11 for GUI
+      - ./logs:/app/logs  # Log persistence
+      - /run/user/1000/pulse:/run/user/1000/pulse:rw  # PulseAudio socket
+      - ~/.config/pulse/cookie:/root/.config/pulse/cookie:ro  # PulseAudio auth
+    environment:
+      - DISPLAY=${DISPLAY}
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      # STT Provider config (groq, revai, deepgram)
+      - STT_PROVIDER=${STT_PROVIDER:-groq}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GROQ_STT_MODEL=${GROQ_STT_MODEL:-distil-whisper-large-v3-en}
+      - REV_AI_ACCESS_TOKEN=${REV_AI_ACCESS_TOKEN}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      # Voice mode config
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-dummy-for-tts}
+      - VOICE_MODE_DEBUG=${VOICE_MODE_DEBUG:-true}
+      - STT_BASE_URL=http://localhost:8081/v1
+      - TTS_BASE_URL=http://piper-tts:8000/v1
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - voicemode-net
+    depends_on:
+      piper-tts:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  piper-tts:
+    build:
+      context: ./piper-adapter
+      dockerfile: Dockerfile
+    container_name: piper-tts
+    ports:
+      - "8082:8000"  # Expose for testing
+    volumes:
+      - piper-voices:/app/voices
+    environment:
+      # TTS Provider config (piper, kokoro)
+      - TTS_PROVIDER=${TTS_PROVIDER:-piper}
+      - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
+      - KOKORO_DEFAULT_VOICE=${KOKORO_DEFAULT_VOICE:-af_bella}
+      # Piper config
+      - PIPER_VOICES_DIR=/app/voices
+      - PIPER_DEFAULT_VOICE=en_US-lessac-medium
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - voicemode-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+networks:
+  voicemode-net:
+    driver: bridge
+
+volumes:
+  logs:
+    driver: local
+  piper-voices:
+    driver: local

@@ -1,0 +1,31 @@
+# Environment and secrets
+.env
+*.env.local
+
+# Audio test files
+*.wav
+*.mp3
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Logs
+logs/
+*.log
+
+# Docker
+.docker/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

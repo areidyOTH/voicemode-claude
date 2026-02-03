@@ -1,0 +1,19 @@
+# Ignore virtual environments
+revai-adapter/venv/
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Ignore IDE files
+.idea/
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore git
+.git/
+
+# Ignore env files with secrets
+.env
