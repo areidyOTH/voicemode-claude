@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     git \
     build-essential \
+    python3-dev \
     alsa-utils \
     pulseaudio \
     ffmpeg \
@@ -32,6 +33,11 @@ WORKDIR /home/appuser/revai-adapter
 RUN /home/appuser/.local/bin/uv venv /home/appuser/revai-adapter/venv && \
     /home/appuser/.local/bin/uv pip install --python /home/appuser/revai-adapter/venv/bin/python \
     fastapi uvicorn websockets httpx python-dotenv python-multipart
+
+# Configure voice-mode to use our TTS/STT adapters
+RUN mkdir -p /home/appuser/.voicemode && \
+    printf 'VOICEMODE_TTS_BASE_URLS=http://piper-tts:8000/v1\nVOICEMODE_STT_BASE_URLS=http://localhost:8081/v1\nVOICEMODE_PREFER_LOCAL=false\nVOICEMODE_VOICES=af_bella\nVOICEMODE_AUTO_START_KOKORO=false\n' \
+    > /home/appuser/.voicemode/voicemode.env
 
 # Set environment variables
 ENV PYTHONPATH=/home/appuser/revai-adapter:$PYTHONPATH
